@@ -1,27 +1,33 @@
 let sombreroData = [];
 let pilatusData = [];
+let acidData = [];
 let sortAscending = true;
 let activeNavigator = 'sombrero';
 const ITEMS_PER_PAGE = 50;
 
-// Load data for both projects
+// Load data for all projects
 Promise.all([
     fetch('data/sanitized/ai_google_alerts_cleaned.json').then(res => res.json()),
-    fetch('data/sanitized/pilatus_alerts_cleaned.json').then(res => res.json())
+    fetch('data/sanitized/pilatus_alerts_cleaned.json').then(res => res.json()),
+    fetch('data/sanitized/acid_alerts_cleaned.json').then(res => res.json())
 ])
-    .then(([sombrero, pilatus]) => {
+    .then(([sombrero, pilatus, acid]) => {
         console.log('Loaded Sombrero:', sombrero);
         console.log('Loaded Pilatus:', pilatus);
+        console.log('Loaded Acid:', acid);
         sombreroData = sombrero;
         pilatusData = pilatus;
+        acidData = acid;
         document.getElementById('sombrero-count').textContent = `(${sombreroData.length})`;
         document.getElementById('pilatus-count').textContent = `(${pilatusData.length})`;
+        document.getElementById('acid-count').textContent = `(${acidData.length})`;
         displayPage('sombrero', 1);
     })
     .catch(error => {
         console.error('Error loading data:', error);
         document.getElementById('sombrero-alerts').innerHTML = '<p>Error loading Sombrero data.</p>';
         document.getElementById('pilatus-alerts').innerHTML = '<p>Error loading Pilatus data.</p>';
+        document.getElementById('acid-alerts').innerHTML = '<p>Error loading Acid data.</p>';
     });
 
 // Display alerts for the current page
@@ -41,7 +47,8 @@ function displayAlerts(alerts, containerId, page) {
     paginatedAlerts.forEach(alert => {
         const div = document.createElement('div');
         div.className = 'alert';
-        const categoryLabel = containerId === 'sombrero' ? 'Category: AI Use Case' : 'Category: AI Risks';
+        const categoryLabel = containerId === 'sombrero' ? 'Category: AI Use Case' :
+                             containerId === 'pilatus' ? 'Category: AI Risks' : 'Category: AI Hallucination';
         div.innerHTML = `
             <h3>${alert.title}</h3>
             <a href="${alert.url}" target="_blank">${alert.url}</a>
@@ -72,7 +79,8 @@ function updatePagination(containerId, currentPage, totalItems) {
 
 // Display a specific page
 function displayPage(containerId, page) {
-    const data = containerId === 'sombrero' ? sombreroData : pilatusData;
+    const data = containerId === 'sombrero' ? sombreroData :
+                 containerId === 'pilatus' ? pilatusData : acidData;
     displayAlerts(data, containerId, page);
 }
 
@@ -81,8 +89,10 @@ document.getElementById('sombrero-tab').addEventListener('click', () => {
     activeNavigator = 'sombrero';
     document.getElementById('sombrero-tab').classList.add('active');
     document.getElementById('pilatus-tab').classList.remove('active');
+    document.getElementById('acid-tab').classList.remove('active');
     document.getElementById('sombrero-container').classList.add('active');
     document.getElementById('pilatus-container').classList.remove('active');
+    document.getElementById('acid-container').classList.remove('active');
     displayPage('sombrero', 1);
     document.getElementById('search').value = '';
 });
@@ -91,17 +101,33 @@ document.getElementById('pilatus-tab').addEventListener('click', () => {
     activeNavigator = 'pilatus';
     document.getElementById('pilatus-tab').classList.add('active');
     document.getElementById('sombrero-tab').classList.remove('active');
+    document.getElementById('acid-tab').classList.remove('active');
     document.getElementById('pilatus-container').classList.add('active');
     document.getElementById('sombrero-container').classList.remove('active');
+    document.getElementById('acid-container').classList.remove('active');
     displayPage('pilatus', 1);
+    document.getElementById('search').value = '';
+});
+
+document.getElementById('acid-tab').addEventListener('click', () => {
+    activeNavigator = 'acid';
+    document.getElementById('acid-tab').classList.add('active');
+    document.getElementById('sombrero-tab').classList.remove('active');
+    document.getElementById('pilatus-tab').classList.remove('active');
+    document.getElementById('acid-container').classList.add('active');
+    document.getElementById('sombrero-container').classList.remove('active');
+    document.getElementById('pilatus-container').classList.remove('active');
+    displayPage('acid', 1);
     document.getElementById('search').value = '';
 });
 
 // Search functionality
 document.getElementById('search').addEventListener('input', function(e) {
     const query = e.target.value.toLowerCase();
-    const data = activeNavigator === 'sombrero' ? sombreroData : pilatusData;
-    const containerId = activeNavigator === 'sombrero' ? 'sombrero' : 'pilatus';
+    const data = activeNavigator === 'sombrero' ? sombreroData :
+                 activeNavigator === 'pilatus' ? pilatusData : acidData;
+    const containerId = activeNavigator === 'sombrero' ? 'sombrero' :
+                        activeNavigator === 'pilatus' ? 'pilatus' : 'acid';
     const filtered = data.filter(alert => 
         alert.title.toLowerCase().includes(query) || 
         alert.synopsis.toLowerCase().includes(query)
@@ -111,8 +137,10 @@ document.getElementById('search').addEventListener('input', function(e) {
 
 // Sort by date
 document.getElementById('sort-date').addEventListener('click', function() {
-    const data = activeNavigator === 'sombrero' ? sombreroData : pilatusData;
-    const containerId = activeNavigator === 'sombrero' ? 'sombrero' : 'pilatus';
+    const data = activeNavigator === 'sombrero' ? sombreroData :
+                 activeNavigator === 'pilatus' ? pilatusData : acidData;
+    const containerId = activeNavigator === 'sombrero' ? 'sombrero' :
+                        activeNavigator === 'pilatus' ? 'pilatus' : 'acid';
     const sorted = [...data].sort((a, b) => {
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
@@ -121,6 +149,7 @@ document.getElementById('sort-date').addEventListener('click', function() {
     sortAscending = !sortAscending;
     this.textContent = sortAscending ? 'Sort by Date (Oldest First)' : 'Sort by Date (Newest First)';
     if (activeNavigator === 'sombrero') sombreroData = sorted;
-    else pilatusData = sorted;
+    else if (activeNavigator === 'pilatus') pilatusData = sorted;
+    else acidData = sorted;
     displayPage(containerId, 1);
 });
