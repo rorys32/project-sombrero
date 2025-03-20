@@ -1,0 +1,5 @@
+/data
+sombrero_archive/
+/process-logs
+scrape_articles.log
+.DS_Store
